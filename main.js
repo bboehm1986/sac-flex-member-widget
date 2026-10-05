@@ -587,7 +587,7 @@
                 callout = `<div class="callout">Needs attention: <b>${this._esc(worst.e.name)} (${this._esc(worst.e.number)})</b> in ${worst.group} has ${this._fmt(worst.left)} members still to complete. ${worst.group} ${worst.st.label.toLowerCase()}.</div>`;
             } else if (!single && !anyOpen) {
                 const next = GROUP_CALENDAR.filter((c) => c.start && this._parseDate(c.start) > today).sort((a, b) => this._parseDate(a.start) - this._parseDate(b.start))[0];
-                callout = `<div class="callout info">No Group is open today.${next ? " Next: " + next.group + " opens " + this._fmtDay(this._parseDate(next.start)) + "." : ""} Pick a Group in the Group filter to see its employers.</div>`;
+                callout = `<div class="callout info">No Group is open today.${next ? " Next: " + next.group + " opens " + this._fmtDay(this._parseDate(next.start)) + "." : ""} Pick a Group in the Wave filter to see its employers.</div>`;
             }
             root.getElementById("callout").innerHTML = callout;
 
@@ -604,7 +604,8 @@
                 const expand = focusedGroup ? focusedGroup === c.group : st.open;
                 const win = c.start ? this._fmtDay(this._parseDate(c.start)) + " – " + this._fmtDay(this._parseDate(c.end)) : "Dates TBD";
                 const empCount = emps.length + placeholders.length;
-                const meta = noEmployers ? "no employers assigned" : empCount ? empCount + (empCount === 1 ? " employer" : " employers") + (expand ? "" : " · collapsed") : "no members in view yet";
+                const offline = placeholders.length ? " · " + placeholders.length + " offline (CPEI)" : "";
+                const meta = noEmployers ? "no employers assigned" : emps.length ? emps.length + (emps.length === 1 ? " employer" : " employers") + offline + (expand ? "" : " · collapsed") : "no members in view yet" + offline;
                 const t = g.totals;
                 html += `<div class="g-row parent"><span>${c.group} <span class="sub">· ${win} · ${meta}</span></span>`
                     + `<span class="num">${t.total ? this._fmt(t.total) : "–"}</span>`
@@ -747,8 +748,8 @@
             days.forEach((d, i) => {
                 if (i % 7 === 0 || i === days.length - 1) svg += `<text class="axis" x="${x(i) + step / 2}" y="${axisY + 13}" text-anchor="middle">${this._fmtDay(d)}</text>`;
             });
-            svg += `<text class="axis" x="${padL - 6}" y="${chartTop + 8}" text-anchor="end">${maxBar}/day</text>`;
-            svg += `<text class="axis" x="${W - padR}" y="${chartTop + 4}" text-anchor="end">${this._fmt(maxCum)} total</text>`;
+            if (cum) svg += `<text class="axis" x="${padL - 6}" y="${chartTop + 8}" text-anchor="end">${maxBar}/day</text>`;
+            svg += `<text class="axis" x="${W - padR}" y="${chartTop + 4}" text-anchor="end">${this._fmt(cum)} total</text>`;
             // Today marker (only inside the fixed window).
             if (today >= axisStart && today <= axisEnd) {
                 const tx = x(idx(today)) + step / 2;
