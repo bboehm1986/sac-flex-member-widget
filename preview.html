@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLEX Member Enrollment — local preview</title>
+<style>
+  body { margin: 0; padding: 20px; background: #eef1f4; font-family: Arial, sans-serif; color: #333; }
+  h2 { font-size: 16px; margin: 0 0 4px; }
+  p { font-size: 12px; margin: 0 0 12px; color: #555; }
+  .controls { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; background: #fff; border: 1px solid #d5d9e0; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+  .controls label { display: block; font-size: 11px; color: #666; margin-bottom: 3px; }
+  .controls select, .controls input { font-size: 13px; padding: 4px 6px; min-width: 150px; }
+  com-porticobenefits-flexmemberenrollment { display: block; width: 960px; height: 1500px; }
+</style>
+</head>
+<body>
+<h2>FLEX Member Enrollment — standalone preview (mock data)</h2>
+<p>The controls below stand in for native SAC Input Controls and sit outside the widget, as they will on the story. They filter the mock rows the same way SAC filters the bound model, then push the result through the widget's update hook. The date is for testing only and sets the widget's <code>simulatedToday</code> property.</p>
+<div class="controls">
+  <div><label for="group">Wave / FLEX group (Input Control)</label><select id="group"><option value="">All</option></select></div>
+  <div><label for="employer">Employer (Input Control)</label><select id="employer"><option value="">All</option></select></div>
+  <div><label for="today">Simulated today (testing only)</label><input type="date" id="today" value="2026-10-28"></div>
+</div>
+<com-porticobenefits-flexmemberenrollment id="widget"></com-porticobenefits-flexmemberenrollment>
+
+<script src="main.js"></script>
+<script>
+  const widget = document.getElementById("widget");
+  const MOCK = customElements.get("com-porticobenefits-flexmemberenrollment").MOCK_DATA;
+  const dim = (r, i) => (r["dimensions_" + i] || {}).label;
+  const groupSel = document.getElementById("group"), empSel = document.getElementById("employer"), todayInp = document.getElementById("today");
+
+  // Detail-model layout: dimensions_1 = Wave (FLEX group), dimensions_13 = Employer "Name (Number)".
+  const flexRows = MOCK.data.filter((r) => /^Group /.test(dim(r, 1)));
+  [...new Set(flexRows.map((r) => dim(r, 1)))].sort().forEach((g) => groupSel.add(new Option(g, g)));
+  [...new Set(flexRows.map((r) => dim(r, 13)))].sort().forEach((e) => empSel.add(new Option(e, e)));
+
+  function apply() {
+    const g = groupSel.value, e = empSel.value;
+    const data = MOCK.data.filter((r) => (!g || dim(r, 1) === g) && (!e || dim(r, 13) === e));
+    widget.onCustomWidgetBeforeUpdate({ width: 960, height: 1500, simulatedToday: todayInp.value });
+    widget.onCustomWidgetAfterUpdate({ width: 960, height: 1500, simulatedToday: todayInp.value });
+    widget._applyPreviewData({ data });
+  }
+  [groupSel, empSel, todayInp].forEach((c) => c.addEventListener("change", apply));
+  apply();
+</script>
+</body>
+</html>
