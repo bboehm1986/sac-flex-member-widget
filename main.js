@@ -93,14 +93,28 @@
     const STATUS_LABELS = { "Success": "Completed", "Abandoned": "Started, not completed", "In Progress": "In progress", "Needs Follow-up": "Needs follow-up", "Not Started": "Not started" };
 
     // Health plan codes (Member_Health_Coverage) arrive with case variants
-    // (selectCopay/selectcopay etc.), so keys are lowercase. Unknown codes
-    // are SHOWN with their raw code, never dropped.
-    // TODO: confirm labels for the remaining codes with the plan owners.
+    // (ESCP/escp, selectCopay/selectcopay, ...), so keys are lowercase.
+    // Unknown codes are SHOWN with their raw code, never dropped.
+    // SAP BPLAN codes (plan type HLTH): official T5UCA texts from Blair's
+    // BPLAN extract, 2026-10-05. Enrollment-app codes (selectCopay etc.)
+    // mapped to the same names. Medicare codes (SMUE, healthB, ...) are not
+    // in that extract yet, so they still show as codes.
     const HEALTH_PLAN_LABELS = {
+        brnz: "Bronze+",
+        escp: "Essential Copay 2500",
+        gold: "Gold+",
+        pltn: "Platinum+",
+        slcp: "Select Copay",
+        slhd: "Select HDHP 2000",
+        slvr: "Silver+",
+        vlcp: "Value Copay",
+        vlhd: "Value HDHP 4000",
+        waiv: "Waived Health Plan",
+        fmsn: "Foreign Missionary Atena Int.",
         selectcopay: "Select Copay",
         valuecopay: "Value Copay",
         medsupp: "Medicare Supplement",
-        waived: "Waived",
+        waived: "Waived Health Plan",
         declined: "Declined",
     };
 
