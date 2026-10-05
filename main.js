@@ -95,10 +95,12 @@
     // Health plan codes (Member_Health_Coverage) arrive with case variants
     // (ESCP/escp, selectCopay/selectcopay, ...), so keys are lowercase.
     // Unknown codes are SHOWN with their raw code, never dropped.
-    // SAP BPLAN codes (plan type HLTH): official T5UCA texts from Blair's
-    // BPLAN extract, 2026-10-05. Enrollment-app codes (selectCopay etc.)
-    // mapped to the same names. Medicare codes (SMUE, healthB, ...) are not
-    // in that extract yet, so they still show as codes.
+    // SAP BPLAN codes: official T5UCA texts from Blair's BPLAN extract,
+    // 2026-10-05. Medicare names are SAP's abbreviated texts written out
+    // ("Medi Std UHC ESI" -> plan type "Medicare Standard" + carrier).
+    // Enrollment-app codes (selectCopay etc.) map to the same names.
+    // Still unconfirmed, so shown as codes: healthB and medSupp (app codes
+    // with conflicting meanings in older PorticoAnalytics SQL).
     const HEALTH_PLAN_LABELS = {
         brnz: "Bronze+",
         escp: "Essential Copay 2500",
@@ -111,9 +113,14 @@
         vlhd: "Value HDHP 4000",
         waiv: "Waived Health Plan",
         fmsn: "Foreign Missionary Atena Int.",
+        emap: "Medicare Economy · Humana",
+        emue: "Medicare Economy · UHC ESI",
+        pmap: "Medicare Premium · Humana",
+        pmue: "Medicare Premium · UHC ESI",
+        smap: "Medicare Standard · Humana",
+        smue: "Medicare Standard · UHC ESI",
         selectcopay: "Select Copay",
         valuecopay: "Value Copay",
-        medsupp: "Medicare Supplement",
         waived: "Waived Health Plan",
         declined: "Declined",
     };
