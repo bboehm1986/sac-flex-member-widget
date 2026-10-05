@@ -1,0 +1,55 @@
+{
+    "id": "com.porticobenefits.flexmemberenrollment",
+    "name": "FLEX Member Enrollment Dashboard",
+    "version": "1.0.0",
+    "vendor": "Portico Benefits",
+    "license": "",
+    "eula": "",
+    "description": "FLEX member enrollment by Group (A-F) and employer: progress, members still to complete, defaults, daily completions on a fixed calendar axis, and an employer detail card with plan selections that appears when one employer is selected in an Input Control. Binds to the existing row-level Member Enrollment detail model and keeps only FLEX rows (Wave 'Group A'-'Group F').",
+    "newInstancePrefix": "FlexMemberEnrollment",
+    "icon": "https://bboehm1986.github.io/sac-flex-member-widget/icon.svg",
+    "webcomponents": [
+        {
+            "kind": "main",
+            "tag": "com-porticobenefits-flexmemberenrollment",
+            "url": "https://bboehm1986.github.io/sac-flex-member-widget/main.js",
+            "integrity": "sha384-Y2DGZv73h89zPa5XVYmCH4Xif60c3iTAcHu72cpSvlDgrOCZyVIjamDdVZllpPBU"
+        }
+    ],
+    "properties": {
+        "width": {
+            "type": "integer",
+            "default": 960
+        },
+        "height": {
+            "type": "integer",
+            "default": 1500
+        },
+        "simulatedToday": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "dataBindings": {
+        "memberDetail": {
+            "feeds": [
+                {
+                    "id": "dimensions",
+                    "description": "Existing row-level model AM_MEMBER_ENROLLMENT_DETAIL (same model as sac-member-detail-widget). Add these 14 dimensions in EXACTLY this order, AFTER the measures: Member, Wave, Enrollment_Status, Defaulted, Defaulted_Timing, Membership_Type, Member_Health_Coverage, Vision_Plan, Set_Up_Date, Completed_Date, Abandoned_Date, Is_Portico_Employee, EventDate, Employer. The first 13 match the Detail widget's order; Employer is added last. SAC binds by position, not name. The widget keeps only FLEX rows (Wave 'Group A'..'Group F'), excludes Is_Portico_Employee = 'Yes', and uses the latest EventDate.",
+                    "type": "dimension"
+                },
+                {
+                    "id": "measures",
+                    "description": "Add these 9 measures FIRST, in EXACTLY this order: Total_Attempts, HSA_Election_Amount, FSA_Health_Election_Amount, FSA_Dependent_Election_Amount, SuppLife_Member_Amount, SuppLife_Spouse_Amount, SuppLife_Dependent_Amount, Retirement_Pretax_Amount, Retirement_Roth_Amount. This is the same order as the Detail widget.",
+                    "type": "mainStructureMember"
+                }
+            ]
+        }
+    },
+    "methods": {
+        "refresh": {
+            "description": "Re-renders the dashboard from the currently bound data"
+        }
+    },
+    "events": {}
+}
