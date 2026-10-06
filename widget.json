@@ -1,7 +1,7 @@
 {
     "id": "com.porticobenefits.flexmemberenrollment",
     "name": "FLEX Member Enrollment Dashboard",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "vendor": "Portico Benefits",
     "license": "",
     "eula": "",
@@ -13,7 +13,7 @@
             "kind": "main",
             "tag": "com-porticobenefits-flexmemberenrollment",
             "url": "https://bboehm1986.github.io/sac-flex-member-widget/main.js",
-            "integrity": "sha384-vkgihPdZpAJi40wv0FsfHRWs3W3p1tmmUuh0/Wi//r4CihFzhTGi25lXgu95qDG5"
+            "integrity": "sha384-Wbdf2HwVUWptSvcmyrZjj08sbvRXMNVzsFZR/fFCe7VLIluRmX4a2Gk/OFZjmDxU"
         }
     ],
     "properties": {
