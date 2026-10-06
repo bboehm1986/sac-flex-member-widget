@@ -410,16 +410,33 @@
                 if (ev && (!latest || ev > latest)) latest = ev;
                 return { r, ev };
             });
-            const list = parsed.filter((p) => !latest || !p.ev || p.ev.getTime() === latest.getTime()).map(({ r }) => {
+            const rowsInCycle = parsed.filter((p) => !latest || !p.ev || p.ev.getTime() === latest.getTime()).map(({ r }) => {
                 const emp = this._employer(this._dim(r, D.EMPLOYER));
                 const amounts = {};
                 Object.keys(M).forEach((k) => { amounts[k] = this._measure(r, M[k]); });
                 return {
+                    member: this._dim(r, D.MEMBER),
                     group: this._dim(r, D.WAVE), status: this._dim(r, D.STATUS), defaulted: this._dim(r, D.DEFAULTED) === "Yes",
                     health: this._dim(r, D.HEALTH), vision: this._dim(r, D.VISION), completedDate: this._dim(r, D.COMPLETED_DATE),
                     empKey: emp.key, empNumber: emp.number, empName: emp.name, amounts,
                 };
             });
+            // Count each member ONCE per cycle. Gold is one row per enrollment
+            // request, and a member can have 2+ requests in a cycle. Keep the
+            // most advanced status (then most attempts); Defaulted if any row is.
+            const RANK = { "Success": 5, "In Progress": 4, "Needs Follow-up": 3, "Abandoned": 2, "Not Started": 1 };
+            const byMember = new Map();
+            rowsInCycle.forEach((m, i) => {
+                const key = m.member || "__row" + i;
+                const prev = byMember.get(key);
+                if (!prev) { byMember.set(key, m); return; }
+                const better = (RANK[m.status] || 0) > (RANK[prev.status] || 0)
+                    || ((RANK[m.status] || 0) === (RANK[prev.status] || 0) && m.amounts.ATTEMPTS > prev.amounts.ATTEMPTS);
+                const keep = better ? m : prev;
+                keep.defaulted = prev.defaulted || m.defaulted;
+                byMember.set(key, keep);
+            });
+            const list = [...byMember.values()];
             this._memberCache = { src: this._data, list };
             return list;
         }
