@@ -99,8 +99,10 @@
     // 2026-10-05. Medicare names are SAP's abbreviated texts written out
     // ("Medi Std UHC ESI" -> plan type "Medicare Standard" + carrier).
     // Enrollment-app codes (selectCopay etc.) map to the same names.
-    // Still unconfirmed, so shown as codes: healthB and medSupp (app codes
-    // with conflicting meanings in older PorticoAnalytics SQL).
+    // App Medicare codes confirmed by Blair 2026-10-06: healthB = Premium,
+    // healthC = Economy, medSupp = Standard Medicare Advantage (Humana), the
+    // same plans as PMAP / EMAP / SMAP, so they share those names and count
+    // together (the plan mix groups by name, not raw code).
     const HEALTH_PLAN_LABELS = {
         brnz: "Bronze+",
         escp: "Essential Copay 2500",
@@ -122,6 +124,9 @@
         selectcopay: "Select Copay",
         valuecopay: "Value Copay",
         waived: "Waived Health Plan",
+        healthb: "Medicare Premium · Humana",
+        healthc: "Medicare Economy · Humana",
+        medsupp: "Medicare Standard · Humana",
         declined: "Declined",
     };
 
@@ -516,8 +521,11 @@
             this._members().forEach((m) => {
                 if (m.empKey !== empKey || !COMPLETED.includes(m.status)) return;
                 const raw = m.health || "(blank)";
-                const k = raw.toLowerCase();
-                if (!byCode[k]) byCode[k] = { label: HEALTH_PLAN_LABELS[k] || raw, labeled: !!HEALTH_PLAN_LABELS[k], code: raw, n: 0 };
+                const code = raw.toLowerCase();
+                // Group by display name, so different codes for the same plan
+                // (healthB and PMAP, selectCopay and SLCP) count together.
+                const k = HEALTH_PLAN_LABELS[code] ? "name:" + HEALTH_PLAN_LABELS[code] : "code:" + code;
+                if (!byCode[k]) byCode[k] = { label: HEALTH_PLAN_LABELS[code] || raw, labeled: !!HEALTH_PLAN_LABELS[code], code: raw, n: 0 };
                 byCode[k].n += 1;
             });
             return Object.values(byCode).sort((a, b) => b.n - a.n);
