@@ -66,14 +66,14 @@
 
     // ---- FLEX calendar (presentation constant) ----
     // Also present as strings in Gold's Wave_Window. CHANGE BOTH TOGETHER.
-    // Group F's dates are TBD (null) until confirmed.
+    // Group F's dates confirmed by Blair 2026-10-08 (decisions date not given).
     const GROUP_CALENDAR = [
         { group: "Group A", start: "2026-10-13", end: "2026-10-29", decisions: "2026-09-15" },
         { group: "Group B", start: "2026-10-20", end: "2026-11-05", decisions: "2026-09-22" },
         { group: "Group C", start: "2026-10-27", end: "2026-11-12", decisions: "2026-09-29" },
         { group: "Group D", start: "2026-11-03", end: "2026-11-19", decisions: "2026-10-06" },
         { group: "Group E", start: "2026-11-10", end: "2026-11-24", decisions: "2026-10-13" },
-        { group: "Group F", start: null, end: null, decisions: null },
+        { group: "Group F", start: "2026-11-17", end: "2026-12-01", decisions: null },
     ];
     // Group membership is NOT configured here: whichever employers' members
     // carry a "Group X" tag appear under that Group (1.0.4, 2026-10-08).
