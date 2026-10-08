@@ -75,17 +75,24 @@
         { group: "Group E", start: "2026-11-10", end: "2026-11-24", decisions: "2026-10-13" },
         { group: "Group F", start: null, end: null, decisions: null },
     ];
-    // Groups confirmed to have no employers this cycle (shown, never dropped).
-    const GROUPS_WITHOUT_EMPLOYERS = ["Group B"];
+    // Group membership is NOT configured here: whichever employers' members
+    // carry a "Group X" tag appear under that Group (1.0.4, 2026-10-08).
+    // Only the dates above are configuration. A Group tag in the data that
+    // isn't in the calendar is still shown, with "Dates TBD".
 
     // CPEI employers enroll offline, so they have no online requests and no
-    // rows in the model. They are shown as display-only placeholder rows,
-    // excluded from every total and %.
-    const CPEI_PLACEHOLDERS = [
+    // rows in the model. They're shown as information-only rows under the
+    // Group the business list puts them in (Blair, 2026-10-08), excluded
+    // from every total and %. A row is hidden if that employer's members
+    // ever appear in the data (then they show as a normal employer).
+    const OFFLINE_EMPLOYERS = [
         { group: "Group C", name: "LSC", number: "61134" },
         { group: "Group D", name: "LSF", number: "60262" },
         { group: "Group D", name: "CASSIA", number: "60287" },
     ];
+    // Members with no employer (no number in Gold's "Name (Number)") are
+    // grouped under this label, always listed last within their Group.
+    const NO_EMPLOYER_LABEL = "No employer found";
 
     const COMPLETED = ["Success"];
     const STARTED = ["Abandoned", "In Progress", "Needs Follow-up"];
@@ -395,8 +402,7 @@
         _employer(label) {
             const m = /^(.*) \(([^()]+)\)$/.exec(label || "");
             if (m) return { key: m[2], number: m[2], name: m[1] };
-            if (!label) return { key: "__none__", number: "", name: "Employer not in data" };
-            return { key: "__" + label, number: "", name: label };
+            return { key: "__none__", number: "", name: NO_EMPLOYER_LABEL };
         }
 
         // One object per FLEX member in the current cycle, parsed once per
@@ -485,9 +491,9 @@
         _parseStatus() {
             const groups = {};
             GROUP_CALENDAR.forEach((c) => { groups[c.group] = { employers: {}, totals: this._emptyCounts() }; });
-            const unknownGroups = new Set(), unknownStatuses = new Set();
+            const unknownStatuses = new Set();
             this._members().forEach((m) => {
-                if (!groups[m.group]) { unknownGroups.add(m.group); return; }
+                if (!groups[m.group]) groups[m.group] = { employers: {}, totals: this._emptyCounts() };
                 const emps = groups[m.group].employers;
                 if (!emps[m.empKey]) emps[m.empKey] = Object.assign(this._emptyCounts(), { key: m.empKey, number: m.empNumber, name: m.empName, group: m.group });
                 const e = emps[m.empKey];
@@ -501,13 +507,15 @@
                 if (m.amounts.ATTEMPTS > 1) e.multi += 1;
             });
             Object.values(groups).forEach((g) => { Object.values(g.employers).forEach((e) => this._add(g.totals, e)); });
-            return { groups, unknownGroups: [...unknownGroups], unknownStatuses: [...unknownStatuses] };
+            const extra = Object.keys(groups).filter((g) => !GROUP_CALENDAR.some((c) => c.group === g)).sort()
+                .map((g) => ({ group: g, start: null, end: null, decisions: null }));
+            return { groups, groupList: GROUP_CALENDAR.concat(extra), unknownStatuses: [...unknownStatuses] };
         }
 
         _parseDaily() {
             const byDay = {};
             this._members().forEach((m) => {
-                if (!COMPLETED.includes(m.status) || !GROUP_CALENDAR.some((c) => c.group === m.group)) return;
+                if (!COMPLETED.includes(m.status)) return;
                 const d = this._parseDate(m.completedDate);
                 if (!d) return;
                 const k = this._key(d);
@@ -551,7 +559,13 @@
         // ---- Render helpers ----
         _fmt(n) { return Math.round(n).toLocaleString(); }
         _money(n) { return "$" + Math.round(n).toLocaleString(); }
-        _pct(n, d) { return d ? Math.round((n / d) * 100) + "%" : "–"; }
+        _pct(n, d) {
+            if (!d) return "–";
+            const p = (n / d) * 100;
+            if (n > 0 && p < 1) return "<1%";
+            if (n < d && p > 99) return "99%";
+            return Math.round(p) + "%";
+        }
         _esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
         _tile(label, value, sub) {
             return `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub || "&nbsp;"}</div></div>`;
@@ -569,15 +583,16 @@
         _render() {
             const root = this._shadowRoot;
             const today = this._today();
-            const { groups, unknownGroups, unknownStatuses } = this._parseStatus();
+            const { groups, groupList, unknownStatuses } = this._parseStatus();
             const allEmployers = [];
             Object.values(groups).forEach((g) => allEmployers.push(...Object.values(g.employers)));
-            const groupsWithRows = GROUP_CALENDAR.filter((c) => Object.keys(groups[c.group].employers).length > 0).map((c) => c.group);
+            const groupsWithRows = groupList.filter((c) => Object.keys(groups[c.group].employers).length > 0).map((c) => c.group);
             const single = allEmployers.length === 1 ? allEmployers[0] : null;
+            const isReal = (e) => !!e.number;
 
             root.getElementById("dataBadge").textContent = this._usingMockData ? "Mock Data — Preview" : "Live";
             root.getElementById("asof").textContent = "As of " + today.toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric", year: "numeric" }) + (this._props.simulatedToday ? " (simulated date)" : "");
-            root.getElementById("title").textContent = single ? single.name + " (" + (single.number || "no number") + ")" : groupsWithRows.length === 1 ? groupsWithRows[0] + " employers" : "Groups and Employers";
+            root.getElementById("title").textContent = single ? single.name + (single.number ? " (" + single.number + ")" : "") : groupsWithRows.length === 1 ? groupsWithRows[0] + " employers" : "Groups and Employers";
 
             // KPIs (online employers only; CPEI placeholders have no rows).
             const T = this._emptyCounts();
@@ -594,10 +609,10 @@
 
             // Callout: the employer in an open Group with the most members left.
             let worst = null;
-            GROUP_CALENDAR.forEach((c) => {
+            groupList.forEach((c) => {
                 const st = this._groupStatus(c, today);
                 if (!st.open) return;
-                Object.values(groups[c.group].employers).forEach((e) => {
+                Object.values(groups[c.group].employers).filter(isReal).forEach((e) => {
                     const left = e.total - e.completed;
                     if (left > 0 && (!worst || left > worst.left)) worst = { e, left, group: c.group, st };
                 });
@@ -606,7 +621,7 @@
             // Input Control is set. Early in the cycle this can also happen
             // unfiltered, which is harmless: that Group is the open one.
             const focusedGroup = groupsWithRows.length === 1 ? groupsWithRows[0] : null;
-            const anyOpen = GROUP_CALENDAR.some((c) => this._groupStatus(c, today).open);
+            const anyOpen = groupList.some((c) => this._groupStatus(c, today).open);
             let callout = "";
             if (worst && !single) {
                 callout = `<div class="callout">Needs attention: <b>${this._esc(worst.e.name)} (${this._esc(worst.e.number)})</b> in ${worst.group} has ${this._fmt(worst.left)} members still to complete. ${worst.group} ${worst.st.label.toLowerCase()}.</div>`;
@@ -616,41 +631,48 @@
             }
             root.getElementById("callout").innerHTML = callout;
 
-            // Group / employer table.
+            // Group / employer table. Real employers sort by members
+            // remaining; the no-employer bucket always comes last.
+            const seen = new Set(allEmployers.map((e) => e.number));
             let html = "";
-            GROUP_CALENDAR.forEach((c) => {
+            groupList.forEach((c) => {
                 const g = groups[c.group];
                 const st = this._groupStatus(c, today);
-                const emps = Object.values(g.employers).sort((a, b) => (b.total - b.completed) - (a.total - a.completed));
-                const placeholders = single || (focusedGroup && focusedGroup !== c.group) ? [] : CPEI_PLACEHOLDERS.filter((p) => p.group === c.group);
-                const noEmployers = GROUPS_WITHOUT_EMPLOYERS.includes(c.group);
+                const all = Object.values(g.employers);
+                const emps = all.filter(isReal).sort((a, b) => (b.total - b.completed) - (a.total - a.completed))
+                    .concat(all.filter((e) => !isReal(e)));
+                const realCount = all.filter(isReal).length;
+                const noEmpMembers = all.filter((e) => !isReal(e)).reduce((n, e) => n + e.total, 0);
                 // Focused: expand only the focused Group. Otherwise the
                 // calendar decides: open Groups expand.
                 const expand = focusedGroup ? focusedGroup === c.group : st.open;
                 const win = c.start ? this._fmtDay(this._parseDate(c.start)) + " – " + this._fmtDay(this._parseDate(c.end)) : "Dates TBD";
-                const empCount = emps.length + placeholders.length;
-                const offline = placeholders.length ? " · " + placeholders.length + " offline (CPEI)" : "";
-                const meta = noEmployers ? "no employers assigned" : emps.length ? emps.length + (emps.length === 1 ? " employer" : " employers") + offline + (expand ? "" : " · collapsed") : "no members in view yet" + offline;
+                const offline = single || (focusedGroup && focusedGroup !== c.group) ? []
+                    : OFFLINE_EMPLOYERS.filter((o) => o.group === c.group && !seen.has(o.number));
+                const parts = [];
+                if (realCount) parts.push(realCount + (realCount === 1 ? " employer" : " employers"));
+                if (noEmpMembers) parts.push(this._fmt(noEmpMembers) + " without employer");
+                if (offline.length) parts.push(offline.length + " offline (CPEI)");
+                const meta = parts.length ? parts.join(" · ") + (expand ? "" : " · collapsed") : "no members in view yet";
                 const t = g.totals;
                 html += `<div class="g-row parent"><span>${c.group} <span class="sub">· ${win} · ${meta}</span></span>`
                     + `<span class="num">${t.total ? this._fmt(t.total) : "–"}</span>`
                     + `<span>${t.total ? this._progress(t) : ""}</span>`
                     + `<span class="num">${t.total ? this._fmt(t.total - t.completed) : "–"}</span>`
                     + `<span class="num">${t.total ? this._fmt(t.defaulted) : "–"}</span>`
-                    + `<span class="num"><span class="pill ${noEmployers ? "neutral" : st.tone}">${st.label}</span></span></div>`;
+                    + `<span class="num"><span class="pill ${t.total ? st.tone : "neutral"}">${st.label}</span></span></div>`;
                 if (!expand) return;
-                if (noEmployers) { html += `<div class="g-row note">No employers are assigned to ${c.group} this cycle.</div>`; return; }
-                if (!emps.length && !placeholders.length) { html += `<div class="g-row note">No members in view yet. Rows appear once enrollment requests exist for this Group.</div>`; }
+                if (!emps.length && !offline.length) { html += `<div class="g-row note">No members in view yet. Rows appear once enrollment requests are tagged ${c.group}.</div>`; }
                 emps.forEach((e) => {
-                    html += `<div class="g-row child"><span>${this._esc(e.name)} <span class="sub">${this._esc(e.number)}</span></span>`
+                    html += `<div class="g-row child${isReal(e) ? "" : " placeholder"}"><span>${this._esc(e.name)} <span class="sub">${this._esc(e.number)}</span></span>`
                         + `<span class="num">${this._fmt(e.total)}</span>`
                         + `<span>${this._progress(e)}</span>`
                         + `<span class="num">${this._fmt(e.total - e.completed)}</span>`
                         + `<span class="num">${this._fmt(e.defaulted)}</span>`
                         + `<span class="num sub">${e.multi ? this._fmt(e.multi) + " multi-attempt" : ""}</span></div>`;
                 });
-                placeholders.forEach((p) => {
-                    html += `<div class="g-row child placeholder"><span>${p.name} <span class="sub">${p.number}</span> <span class="pill neutral">CPEI · offline</span></span>`
+                offline.forEach((o) => {
+                    html += `<div class="g-row child placeholder"><span>${o.name} <span class="sub">${o.number}</span> <span class="pill neutral">CPEI · offline</span></span>`
                         + `<span class="num">–</span><span class="sub">Enrolling through the offline CPEI process</span><span class="num">–</span><span class="num">–</span><span class="num sub">excluded</span></div>`;
                 });
             });
@@ -666,7 +688,6 @@
             // widget doesn't recognize, so nothing is dropped silently. No
             // other caveat or open-items text on the dashboard (Blair, 2026-10-05).
             const notes = [];
-            if (unknownGroups.length) notes.push("Rows with an unrecognized Group were left out: " + unknownGroups.map((x) => this._esc(x)).join(", ") + ".");
             if (unknownStatuses.length) notes.push("Unrecognized enrollment status counted as started: " + unknownStatuses.map((x) => this._esc(x)).join(", ") + ".");
             const notice = root.getElementById("notice");
             notice.innerHTML = notes.join("<br>");
@@ -674,7 +695,7 @@
         }
 
         _employerCardHtml(e, today) {
-            const cal = GROUP_CALENDAR.find((c) => c.group === e.group);
+            const cal = GROUP_CALENDAR.find((c) => c.group === e.group) || { group: e.group, start: null, end: null };
             const st = this._groupStatus(cal, today);
             const win = cal && cal.start ? this._fmtDay(this._parseDate(cal.start)) + " – " + this._fmtDay(this._parseDate(cal.end)) : "dates TBD";
 
@@ -774,7 +795,7 @@
                 if (i % 7 === 0 || i === days.length - 1) svg += `<text class="axis" x="${x(i) + step / 2}" y="${axisY + 13}" text-anchor="middle">${this._fmtDay(d)}</text>`;
             });
             if (cum) svg += `<text class="axis" x="${padL - 6}" y="${chartTop + 8}" text-anchor="end">${maxBar}/day</text>`;
-            svg += `<text class="axis" x="${W - padR}" y="${chartTop + 4}" text-anchor="end">${this._fmt(cum)} total</text>`;
+            svg += `<text class="axis" x="${W - padR}" y="${chartTop + 4}" text-anchor="end">${this._fmt(cum)} ${outOfWindow ? "in window" : "total"}</text>`;
             // Today marker (only inside the fixed window).
             if (today >= axisStart && today <= axisEnd) {
                 const tx = x(idx(today)) + step / 2;
@@ -783,7 +804,7 @@
             }
             svg += `</svg>`;
             const legend = `<div class="legend" style="margin-top:6px"><span><span class="swatch" style="background:rgba(47,111,224,0.45)"></span>Completed that day</span><span><span class="swatch" style="background:#6a5cf0;height:2px;width:12px"></span>Cumulative</span><span><span class="swatch" style="background:rgba(106,92,240,0.22)"></span>Group window</span></div>`;
-            const oow = outOfWindow ? `<div class="sub" style="font-size:11px;color:var(--text-soft)">${this._fmt(outOfWindow)} completions fall outside the FLEX calendar window and aren't plotted.</div>` : "";
+            const oow = outOfWindow ? `<div class="sub" style="font-size:11px;color:var(--text-soft)">${this._fmt(outOfWindow)} ${outOfWindow === 1 ? "completion falls" : "completions fall"} outside the FLEX calendar window and ${outOfWindow === 1 ? "isn't" : "aren't"} plotted.</div>` : "";
             return svg + legend + oow;
         }
     }
