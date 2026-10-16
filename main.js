@@ -69,7 +69,6 @@
     // Group F's dates confirmed by Blair 2026-10-08 (decisions date not given).
     const GROUP_CALENDAR = [
         { group: "Group A", start: "2026-10-13", end: "2026-10-29", decisions: "2026-09-15" },
-        { group: "Group B", start: "2026-10-20", end: "2026-11-05", decisions: "2026-09-22" },
         { group: "Group C", start: "2026-10-27", end: "2026-11-12", decisions: "2026-09-29" },
         { group: "Group D", start: "2026-11-03", end: "2026-11-19", decisions: "2026-10-06" },
         { group: "Group E", start: "2026-11-10", end: "2026-11-24", decisions: "2026-10-13" },
@@ -79,6 +78,8 @@
     // carry a "Group X" tag appear under that Group (1.0.4, 2026-10-08).
     // Only the dates above are configuration. A Group tag in the data that
     // isn't in the calendar is still shown, with "Dates TBD".
+    // Group B was dropped from the business calendar 2026-10-16 (its
+    // employers moved to Group C), so it is no longer listed (1.0.6).
 
     // CPEI employers enroll offline, so they have no online requests and no
     // rows in the model. They're shown as information-only rows under the
@@ -88,7 +89,6 @@
     const OFFLINE_EMPLOYERS = [
         { group: "Group C", name: "LSC", number: "61134" },
         { group: "Group D", name: "LSF", number: "60262" },
-        { group: "Group D", name: "CASSIA", number: "60287" },
     ];
     // Members with no employer (no number in Gold's "Name (Number)") are
     // grouped under this label, always listed last within their Group.
@@ -137,6 +137,8 @@
         declined: "Declined",
     };
 
+    const WAIVED_CODES = ["waiv", "waived"];
+
     // Dimension / measure positions (must match the Builder order above).
     const D = { MEMBER: 0, WAVE: 1, STATUS: 2, DEFAULTED: 3, HEALTH: 6, VISION: 7, COMPLETED_DATE: 9, PORTICO: 11, EVENT_DATE: 12, EMPLOYER: 13 };
     const DIM_COUNT = 14;
@@ -168,11 +170,11 @@
         ["Group D", "61144", "AKCF", 0, 0, 0, 0, 120, 0, 0],
         ["Group E", "61083", "MSLCC", 0, 0, 0, 0, 150, 0, 0],
         ["Group E", "60089", "LCSNW", 0, 0, 0, 0, 230, 0, 0],
-        ["Group E", "60149", "LMWI", 0, 0, 0, 0, 310, 0, 0],
+        ["Group F", "60149", "LMWI", 0, 0, 0, 0, 310, 0, 0],
         ["Group E", "60430", "BC", 0, 0, 0, 0, 75, 0, 0],
-        ["Group E", "60181", "LMMERCY", 0, 0, 0, 0, 260, 0, 0],
-        ["Group E", "60417", "LMMERCY", 0, 0, 0, 0, 90, 0, 0],
-        ["Group E", "61146", "LMMERCY", 0, 0, 0, 0, 45, 0, 0],
+        ["Group F", "60181", "LMMERCY", 0, 0, 0, 0, 260, 0, 0],
+        ["Group F", "60417", "LMMERCY", 0, 0, 0, 0, 90, 0, 0],
+        ["Group F", "61146", "LMMERCY", 0, 0, 0, 0, 45, 0, 0],
     ];
     const MOCK_STARTS = { "Group A": new Date(2026, 9, 13), "Group C": new Date(2026, 9, 27) };
 
@@ -570,6 +572,21 @@
         _tile(label, value, sub) {
             return `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub || "&nbsp;"}</div></div>`;
         }
+        // Health elections among completed members (1.0.6, replaces the
+        // redundant "Still to complete" tile). Waived = the waive codes;
+        // any other non-blank code is an enrolled plan.
+        _healthTile() {
+            let enrolled = 0, waived = 0, blank = 0;
+            this._members().forEach((m) => {
+                if (!COMPLETED.includes(m.status)) return;
+                const code = (m.health || "").trim().toLowerCase();
+                if (!code) blank += 1;
+                else if (WAIVED_CODES.includes(code)) waived += 1;
+                else enrolled += 1;
+            });
+            const sub = "enrolled · waived, of completed" + (blank ? ` · ${this._fmt(blank)} no plan` : "");
+            return this._tile("Health elections", this._fmt(enrolled) + " · " + this._fmt(waived), sub);
+        }
         _bar(c) {
             if (!c.total) return `<div class="bar"></div>`;
             const w = (n) => ((n / c.total) * 100).toFixed(2) + "%";
@@ -602,7 +619,7 @@
                 this._tile("Completed", this._fmt(T.completed), this._pct(T.completed, T.total) + " complete"),
                 this._tile("Started, not completed", this._fmt(T.started + T.other), this._pct(T.started + T.other, T.total) + " abandoned or in progress"),
                 this._tile("Not started", this._fmt(T.notStarted), this._pct(T.notStarted, T.total) + " not started"),
-                this._tile("Still to complete", this._fmt(T.total - T.completed), "set up minus completed"),
+                this._healthTile(),
                 this._tile("Defaulted", this._fmt(T.defaulted), "Default tag applied"),
                 this._tile("Multiple attempts", this._fmt(T.multi), "members with 2+ attempts"),
             ].join("");
