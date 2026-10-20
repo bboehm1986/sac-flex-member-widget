@@ -135,6 +135,9 @@
         healthc: "Medicare Economy · Humana",
         medsupp: "Medicare Standard · Humana",
         declined: "Declined",
+        // FLEX plan codes, names from Blair 2026-10-20.
+        h110: "Premier Copay",
+        h120: "Base Copay",
     };
 
     const WAIVED_CODES = ["waiv", "waived"];
