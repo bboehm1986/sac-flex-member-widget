@@ -97,7 +97,6 @@
     const COMPLETED = ["Success"];
     const STARTED = ["Abandoned", "In Progress", "Needs Follow-up"];
     const NOT_STARTED = ["Not Started"];
-    const STATUS_LABELS = { "Success": "Completed", "Abandoned": "Abandoned", "In Progress": "In progress", "Needs Follow-up": "Needs follow-up", "Not Started": "Not started" };
 
     // Health plan codes (Member_Health_Coverage) arrive with case variants
     // (ESCP/escp, selectCopay/selectcopay, ...), so keys are lowercase.
@@ -736,11 +735,12 @@
             const st = this._groupStatus(cal, today);
             const win = cal && cal.start ? this._fmtDay(this._parseDate(cal.start)) + " – " + this._fmtDay(this._parseDate(cal.end)) : "dates TBD";
 
-            const statusRows = ["Success", "Abandoned", "In Progress", "Needs Follow-up", "Not Started"].concat(Object.keys(e.byStatus).filter((s) => !STATUS_LABELS[s]))
-                .map((s) => {
-                    const n = e.byStatus[s] || 0;
+            // Same three buckets as the KPI tiles (1.0.8), so the card and the
+            // tiles can never disagree.
+            const statusRows = [["Completed", e.completed], ["Started, not completed", e.started + e.other], ["Not started", e.notStarted]]
+                .map(([label, n]) => {
                     const w = e.total ? (n / e.total) * 100 : 0;
-                    return `<div class="kv"><span>${this._esc(STATUS_LABELS[s] || s)}</span><div class="bar"><div style="width:${w.toFixed(2)}%"></div></div><span class="num">${this._fmt(n)}</span></div>`;
+                    return `<div class="kv"><span>${label}</span><div class="bar"><div style="width:${w.toFixed(2)}%"></div></div><span class="num">${this._fmt(n)}</span></div>`;
                 }).join("")
                 + `<div class="kv"><span>Defaulted</span><span></span><span class="num">${this._fmt(e.defaulted)}</span></div>`
                 + `<div class="kv"><span>Multiple attempts</span><span></span><span class="num">${this._fmt(e.multi)}</span></div>`;
