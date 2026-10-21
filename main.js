@@ -97,7 +97,7 @@
     const COMPLETED = ["Success"];
     const STARTED = ["Abandoned", "In Progress", "Needs Follow-up"];
     const NOT_STARTED = ["Not Started"];
-    const STATUS_LABELS = { "Success": "Completed", "Abandoned": "Started, not completed", "In Progress": "In progress", "Needs Follow-up": "Needs follow-up", "Not Started": "Not started" };
+    const STATUS_LABELS = { "Success": "Completed", "Abandoned": "Abandoned", "In Progress": "In progress", "Needs Follow-up": "Needs follow-up", "Not Started": "Not started" };
 
     // Health plan codes (Member_Health_Coverage) arrive with case variants
     // (ESCP/escp, selectCopay/selectcopay, ...), so keys are lowercase.
