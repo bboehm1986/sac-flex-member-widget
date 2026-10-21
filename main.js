@@ -293,6 +293,7 @@
             .g-row.parent { font-weight: 700; }
             .g-row.child { padding-left: 22px; }
             .g-row.child.placeholder { color: var(--text-soft); }
+            .g-row.termed { margin-top: 6px; border-top: 1px solid var(--surface-2); border-bottom: none; color: var(--text-soft); }
             .g-row.note { padding-left: 22px; font-size: 11.5px; color: var(--text-soft); display: block; }
             .g-row .sub { font-size: 10.5px; font-weight: 400; color: var(--text-soft); }
             .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -447,9 +448,19 @@
                 keep.defaulted = prev.defaulted || m.defaulted;
                 byMember.set(key, keep);
             });
-            const list = [...byMember.values()];
-            this._memberCache = { src: this._data, list };
+            // Members with no employer number are held out of every count and
+            // shown on their own "Terminated after enrollment set-up" line
+            // (1.0.8, Blair 2026-10-21: Yong confirmed they are members whose
+            // employment ended after their FLEX request was set up).
+            const everyone = [...byMember.values()];
+            const list = everyone.filter((m) => m.empNumber);
+            const termed = everyone.filter((m) => !m.empNumber);
+            this._memberCache = { src: this._data, list, termed };
             return list;
+        }
+        _termed() {
+            this._members();
+            return this._memberCache.termed;
         }
 
         // Local-midnight date from ISO, YYYYMMDD, or a locale label.
@@ -662,7 +673,6 @@
                 const emps = all.filter(isReal).sort((a, b) => (b.total - b.completed) - (a.total - a.completed))
                     .concat(all.filter((e) => !isReal(e)));
                 const realCount = all.filter(isReal).length;
-                const noEmpMembers = all.filter((e) => !isReal(e)).reduce((n, e) => n + e.total, 0);
                 // Focused: expand only the focused Group. Otherwise the
                 // calendar decides: open Groups expand.
                 const expand = focusedGroup ? focusedGroup === c.group : st.open;
@@ -671,7 +681,6 @@
                     : OFFLINE_EMPLOYERS.filter((o) => o.group === c.group && !seen.has(o.number));
                 const parts = [];
                 if (realCount) parts.push(realCount + (realCount === 1 ? " employer" : " employers"));
-                if (noEmpMembers) parts.push(this._fmt(noEmpMembers) + " without employer");
                 if (offline.length) parts.push(offline.length + " offline (CPEI)");
                 const meta = parts.length ? parts.join(" · ") + (expand ? "" : " · collapsed") : "no members in view yet";
                 const t = g.totals;
@@ -696,6 +705,14 @@
                         + `<span class="num">–</span><span class="sub">Enrolling through the offline CPEI process</span><span class="num">–</span><span class="num">–</span><span class="num sub">excluded</span></div>`;
                 });
             });
+            const termed = this._termed();
+            if (termed.length) {
+                const byGroup = {};
+                termed.forEach((m) => { byGroup[m.group] = (byGroup[m.group] || 0) + 1; });
+                const list = Object.keys(byGroup).sort().map((g) => g + ": " + this._fmt(byGroup[g])).join(" · ");
+                html += `<div class="g-row termed"><span>Terminated after enrollment set-up <span class="sub">· ${list} · not counted above</span></span>`
+                    + `<span class="num">${this._fmt(termed.length)}</span><span></span><span></span><span></span><span></span></div>`;
+            }
             root.getElementById("groups").innerHTML = html;
 
             // Employer card (exactly one employer in view) or a hint.
