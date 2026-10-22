@@ -292,7 +292,7 @@
             .g-row.parent { font-weight: 700; }
             .g-row.child { padding-left: 22px; }
             .g-row.child.placeholder { color: var(--text-soft); }
-            .g-row.termed { margin-top: 6px; border-top: 1px solid var(--surface-2); border-bottom: none; color: var(--text-soft); }
+            .g-row.termed { display: block; margin-top: 6px; border-top: 1px solid var(--surface-2); border-bottom: none; color: var(--text-soft); }
             .g-row.note { padding-left: 22px; font-size: 11.5px; color: var(--text-soft); display: block; }
             .g-row .sub { font-size: 10.5px; font-weight: 400; color: var(--text-soft); }
             .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -708,9 +708,8 @@
             if (termed.length) {
                 const byGroup = {};
                 termed.forEach((m) => { byGroup[m.group] = (byGroup[m.group] || 0) + 1; });
-                const list = Object.keys(byGroup).sort().map((g) => g + ": " + this._fmt(byGroup[g])).join(" · ");
-                html += `<div class="g-row termed"><span>Terminated after enrollment set-up <span class="sub">· ${list} · not counted above</span></span>`
-                    + `<span class="num">${this._fmt(termed.length)}</span><span></span><span></span><span></span><span></span></div>`;
+                const list = Object.keys(byGroup).sort().map((g) => g + " " + this._fmt(byGroup[g])).join(", ");
+                html += `<div class="g-row termed">Terminated after enrollment set-up: <b>${this._fmt(termed.length)}</b> <span class="sub">(${list}) · not counted above</span></div>`;
             }
             root.getElementById("groups").innerHTML = html;
 
