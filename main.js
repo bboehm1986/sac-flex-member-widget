@@ -73,6 +73,8 @@
         { group: "Group D", start: "2026-11-03", end: "2026-11-19", decisions: "2026-10-06" },
         { group: "Group E", start: "2026-11-10", end: "2026-11-24", decisions: "2026-10-13" },
         { group: "Group F", start: "2026-11-17", end: "2026-12-01", decisions: null },
+        // Group G: Lutheran Child & Family Services of Illinois (61149), new 1/1/2027 (Patrick 2026-10-29).
+        { group: "Group G", start: "2026-12-01", end: "2026-12-11", decisions: null },
     ];
     // Group membership is NOT configured here: whichever employers' members
     // carry a "Group X" tag appear under that Group (1.0.4, 2026-10-08).
