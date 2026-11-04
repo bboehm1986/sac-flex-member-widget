@@ -95,13 +95,6 @@
     // Members with no employer (no number in Gold's "Name (Number)") are
     // grouped under this label, always listed last within their Group.
     const NO_EMPLOYER_LABEL = "No employer found";
-    // STOP-GAP (Blair 2026-11-03): AE_EE broke in Production and Group D
-    // members lost their employer. Until it is fixed, a Group's members with
-    // no employer are counted under this employer instead of "Terminated".
-    // Remove once AE_EE is fixed and Gold refreshes.
-    const NO_EMPLOYER_FALLBACK = {
-        "Group D": { number: "61144", name: "AK CHILD & FAMILY" },
-    };
 
     const COMPLETED = ["Success"];
     const STARTED = ["Abandoned", "In Progress", "Needs Follow-up"];
@@ -461,10 +454,6 @@
             // (1.0.8, Blair 2026-10-21: Yong confirmed they are members whose
             // employment ended after their FLEX request was set up).
             const everyone = [...byMember.values()];
-            everyone.forEach((m) => {
-                const fb = !m.empNumber && NO_EMPLOYER_FALLBACK[m.group];
-                if (fb) Object.assign(m, { empKey: fb.number, empNumber: fb.number, empName: fb.name });
-            });
             const list = everyone.filter((m) => m.empNumber);
             const termed = everyone.filter((m) => !m.empNumber);
             this._memberCache = { src: this._data, list, termed };
